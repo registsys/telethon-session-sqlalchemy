@@ -44,13 +44,14 @@ class AlchemySessionContainer:
             if not self.db:
                 raise ValueError("Can't manage tables without an ORM session.")
             table_base.metadata.bind = self.db_engine
-            if not self.db_engine.dialect.has_table(self.db_engine,
-                                                    self.Version.__tablename__):
-                table_base.metadata.create_all()
-                self.db.add(self.Version(version=LATEST_VERSION))
-                self.db.commit()
-            else:
-                self.check_and_upgrade_database()
+            with self.db_engine.connect() as connection:
+                if not self.db_engine.dialect.has_table(connection,
+                                                        self.Version.__tablename__):
+                    table_base.metadata.create_all()
+                    self.db.add(self.Version(version=LATEST_VERSION))
+                    self.db.commit()
+                else:
+                    self.check_and_upgrade_database()
 
     @property
     def core_mode(self) -> bool:
